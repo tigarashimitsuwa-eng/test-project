@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プリント？プリン？ ～Unknown Spirit先生 Version 2.1～</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Press+Start+2P&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Outfit', 'Kosugi Maru', sans-serif;
+            text-align: center;
+            background: radial-gradient(circle at center, #1b203e 0%, #0a0c16 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            transition: background 0.5s;
+        }
+        h1 {
+            font-family: 'Kosugi Maru', sans-serif;
+            font-size: 24px;
+            margin: 10px 0 5px 0;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+            color: #fff;
+        }
+        #dashboard {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 420px;
+            margin-bottom: 8px;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 8px 0;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .stat-box { display: flex; flex-direction: column; align-items: center; }
+        .stat-box .label { font-size: 8px; font-family: 'Press Start 2P', monospace; color: #94a3b8; margin-bottom: 3px; }
+        .stat-box .value { font-size: 16px; font-family: 'Press Start 2P', monospace; font-weight: bold; color: #38bdf8; }
+
+        .boss-hud { width: 100%; max-width: 420px; margin-bottom: 10px; padding: 0 4px; box-sizing: border-box; }
+        .boss-header-row { display: flex; justify-content: space-between; align-items: center; }
+        .boss-label { font-size: 9px; font-family: 'Press Start 2P', monospace; color: #f43f5e; font-weight: bold; }
+        #bossHpText { font-size: 9px; font-family: 'Press Start 2P', monospace; color: #f43f5e; }
+        #bossBar { width: 100%; height: 14px; border: 2px solid #ef4444; border-radius: 8px; background: #0f172a; overflow: hidden; margin-top: 4px; position: relative; }
+        #bossHp { width: 100%; height: 100%; background: linear-gradient(90deg, #ec4899, #ef4444); transition: width 0.1s ease-out, background 0.3s; }
+        #bossSpeech { position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: white; color: black; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold; font-family: 'Kosugi Maru', sans-serif; white-space: nowrap; opacity: 0; transition: opacity 0.3s; z-index: 10; pointer-events: none; }
+        #bossSpeech::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-width: 6px 6px 0; border-style: solid; border-color: white transparent; display: block; width: 0; }
+
+        #game { position: relative; width: 100%; max-width: 420px; height: 530px; background: #0f172a; border: 4px solid #6366f1; border-radius: 20px; overflow: hidden; user-select: none; transition: filter 0.3s, border-color 0.5s; }
+
+        .bg-phase2 { background: radial-gradient(circle at center, #3b1e1e 0%, #0a0c16 100%) !important; }
+        .bg-phase3 { background: radial-gradient(circle at center, #5c1d1d 0%, #120505 100%) !important; }
+        .bg-phase4 { background: #000000 !important; animation: flashRed 1s infinite alternate; }
+        @keyframes flashRed { 0% { box-shadow: inset 0 0 20px #000; } 100% { box-shadow: inset 0 0 40px #500; } }
+        .hp-blink { animation: hpBlinkAnim 0.3s infinite alternate; }
+        @keyframes hpBlinkAnim { 0% { opacity: 0.4; } 100% { opacity: 1; } }
+        .border-final { border-color: #ff0055 !important; box-shadow: 0 0 30px #ff0055 !important; }
+
+        @keyframes shake { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 20% { transform: translate(-3px, 2px) rotate(-1deg); } 40% { transform: translate(3px, -1px) rotate(1deg); } 60% { transform: translate(-2px, -2px) rotate(0deg); } 80% { transform: translate(2px, 1px) rotate(1deg); } }
+        .shake { animation: shake 0.2s infinite; }
+
+        #teacher { position: absolute; width: 85px; height: 110px; top: 15px; left: 160px; z-index: 5; background-size: contain; background-repeat: no-repeat; background-position: center; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)); transition: transform 0.1s; }
+        .aura-final { filter: drop-shadow(0 0 15px #ff0055) drop-shadow(0 0 30px #ff0000) !important; animation: finalPulse 0.4s infinite alternate; }
+        @keyframes finalPulse { 0% { transform: scale(1); } 100% { transform: scale(1.15); } }
+
+        #player { position: absolute; width: 80px; height: 100px; bottom: 5px; left: 160px; z-index: 5; background-size: contain; background-repeat: no-repeat; background-position: center; }
+        #player.hurt { animation: blink 0.1s linear 4; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.1; } }
+
+        #helper { position: absolute; width: 55px; height: 75px; right: 5px; bottom: 5px; background-size: contain; background-repeat: no-repeat; background-position: center; opacity: 0.9; z-index: 4; }
+        .bounce { animation: helperBounce 0.5s ease; }
+        @keyframes helperBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+
+        .item { position: absolute; font-size: 34px; z-index: 10; pointer-events: none; transform-origin: center; text-align: center; width: 40px; height: 40px; line-height: 40px; }
+        .item.print { animation: spinPrint 4s linear infinite; }
+        .item.attack { font-size: 38px; animation: spinAttack 0.8s linear infinite; filter: drop-shadow(0 0 8px #a855f7); }
+        @keyframes spinPrint { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spinAttack { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+
+        .game-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); z-index: 100; color: #fff; padding: 20px; box-sizing: border-box; transition: opacity 0.3s ease; }
+        .game-screen.hidden { opacity: 0; pointer-events: none; }
+        .game-screen h2 { font-family: 'Kosugi Maru', sans-serif; font-size: 26px; margin: 0 0 10px 0; }
+        .game-screen p { font-size: 12px; line-height: 1.5; margin: 0 0 15px 0; color: #cbd5e1; max-width: 320px; }
+
+        .menu-btn { width: 220px; height: 45px; font-size: 12px; font-family: 'Press Start 2P', monospace; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 25px; cursor: pointer; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); outline: none; }
+        .menu-btn:hover { transform: translateY(-2px); }
+
+        .score-panel { font-family: 'Kosugi Maru', sans-serif; font-size: 13px; color: #f1f5f9; margin-bottom: 15px; line-height: 1.8; background: rgba(255, 255, 255, 0.05); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); text-align: left; width: 280px; box-sizing: border-box; }
+        .score-panel span.accent { color: #facc15; font-weight: bold; font-family: 'Press Start 2P', monospace; font-size: 14px; }
+        .rank-txt { font-family: 'Kosugi Maru', sans-serif; font-size: 22px; font-weight: bold; color: #ff0055; text-align: center; margin-top: 5px; letter-spacing: 2px; }
+
+        #warning-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 0, 85, 0.2); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.5s; font-family: 'Press Start 2P', monospace; }
+        #warning-overlay.active { opacity: 1; animation: warningFlash 0.5s infinite alternate; }
+        @keyframes warningFlash { 0% { background: rgba(255, 0, 85, 0.1); } 100% { background: rgba(255, 0, 85, 0.3); } }
+        .warn-title { color: #ff0055; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #000; margin-bottom: 10px; }
+        .warn-sub { color: #fff; font-size: 10px; letter-spacing: 1px; }
+
+        #combo-badge { position: absolute; top: 110px; right: 15px; font-family: 'Press Start 2P', monospace; font-size: 10px; background: linear-gradient(135deg, #ec4899, #f43f5e); color: white; padding: 5px 10px; border-radius: 20px; z-index: 8; transform: scale(0); transition: transform 0.15s; pointer-events: none; }
+        #combo-badge.active { transform: scale(1); }
+        #buff-status { position: absolute; bottom: 105px; left: 15px; display: flex; flex-direction: column; gap: 5px; z-index: 8; pointer-events: none; }
+        .buff-badge { font-family: 'Kosugi Maru', sans-serif; font-size: 10px; background: rgba(15, 23, 42, 0.85); border-radius: 6px; padding: 4px 8px; color: white; border: 1px solid #38bdf8; }
+
+        .controls { margin-top: 10px; display: flex; justify-content: center; gap: 15px; width: 100%; max-width: 420px; }
+        .ctrl-btn { flex: 1; height: 55px; font-size: 22px; background: rgba(30, 41, 59, 0.7); color: #e2e8f0; border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; outline: none; }
+        .ctrl-btn:active { background: #6366f1; }
+
+        .popup-text { position: absolute; font-family: 'Press Start 2P', monospace; font-size: 10px; font-weight: bold; pointer-events: none; z-index: 12; text-shadow: 0 2px 4px #000; animation: popupMoveUp 0.8s ease-out forwards; }
+        @keyframes popupMoveUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-40px); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <h1>👻 プリント？プリン？ v2.1</h1>
+
+    <div id="dashboard">
+        <div class="stat-box"><span class="label">SCORE</span><span id="score" class="value">0</span></div>
+        <div class="stat-box"><span class="label">TIME</span><span id="time" class="value">60</span></div>
+        <div class="stat-box"><span class="label">HI-SCORE</span><span id="highscore-hud" class="value">0</span></div>
+    </div>
+
+    <div class="boss-hud">
+        <div class="boss-header-row">
+            <span class="boss-label" id="bossName">UNKNOWN SPIRIT先生 (通常モード)</span>
+            <span id="bossHpText">100%</span>
+        </div>
+        <div id="bossBar">
+            <div id="bossSpeech">ちゃんと授業を受けなさい！！</div>
+            <div id="bossHp"></div>
+        </div>
+    </div>
+
+    <div id="game">
+        <div id="warning-overlay">
+            <div class="warn-title">⚠ WARNING ⚠</div>
+            <div class="warn-title" style="font-size:16px;">FINAL MODE</div>
+            <div class="warn-sub">UNKNOWN SPIRIT</div>
+        </div>
+
+        <div id="screen-start" class="game-screen">
+            <h2>👻 授業スタート (v2.1)</h2>
+            <p>先生が投げる「プリント 📄」を集めてHPを削ろう！「プリン 🍮」はコンボが消えるぞ！先生のHPが減ると4段階に変身！</p>
+            <button id="btn-start" class="menu-btn">GAME START</button>
+        </div>
+
+        <div id="screen-gameover" class="game-screen hidden">
+            <h2>🏫 授業終了...</h2>
+            <div class="score-panel">
+                スコア: <span id="end-score-g" class="accent">0</span><br>
+                先生残りHP: <span id="end-boss-hp" class="accent">100</span>%<br>
+                ハイスコア: <span id="highscore" class="accent">0</span>
+            </div>
+            <button id="btn-retry" class="menu-btn">RETRY</button>
+        </div>
+
+        <div id="screen-victory" class="game-screen hidden">
+            <h2>🏆 先生撃破！！</h2>
+            <div class="score-panel">
+                最終スコア: <span id="end-score-v" class="accent">0</span><br>
+                最高コンボ: <span id="end-combo" class="accent">0</span> Combo<br>
+                プリント回収率: <span id="end-collect" class="accent">0</span>%<br>
+                攻撃回避率: <span id="end-evade" class="accent">0</span>%<br>
+                <hr style="border:0; border-top:1px solid rgba(255,255,255,0.2); margin:8px 0;">
+                <div id="rank-display" class="rank-txt">★ Sランク 授業マスター ★</div>
+                <div id="secret-msg" style="font-size:10px; color:#38bdf8; text-align:center; margin-top:5px; display:none;">🏆 真・Unknown Spirit 解放！！</div>
+            </div>
+            <button id="btn-play-again" class="menu-btn">PLAY AGAIN</button>
+        </div>
+
+        <div id="combo-badge">0 COMBO!</div>
+        <div id="buff-status"></div>
+
+        <div id="teacher" style="background-image: url('unknown_spirit.png');"></div>
+        <div id="player" style="background-image: url('mouse_warrior.png');"></div>
+        <div id="helper" style="background-image: url('sketch_mouse.png');"></div>
+    </div>
+
+    <div class="controls">
+        <button id="left" class="ctrl-btn">⬅</button>
+        <button id="right" class="ctrl-btn">➡</button>
+    </div>
+
+<script>
+class SoundEffects {
+    constructor() { this.ctx = null; }
+    init() { if (!this.ctx) { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } }
+    playTone(freq, duration, time, type = 'square', gainVal = 0.1) {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.type = type; osc.frequency.setValueAtTime(freq, time);
+        gain.gain.setValueAtTime(gainVal, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+        osc.start(time); osc.stop(time + duration);
+    }
+    playStart() { this.init(); const t = this.ctx.currentTime; this.playTone(440, 0.1, t); this.playTone(554, 0.1, t+0.1); this.playTone(659, 0.2, t+0.2); }
+    playCatchPrint() { this.init(); this.playTone(880, 0.05, this.ctx.currentTime, 'sine', 0.15); }
+    playCatchPudding() { this.init(); this.playTone(220, 0.2, this.ctx.currentTime, 'triangle', 0.2); }
+    playHurt() { this.init(); this.playTone(150, 0.3, this.ctx.currentTime, 'sawtooth', 0.2); }
+    playPhase() { this.init(); const t = this.ctx.currentTime; this.playTone(300, 0.1, t); this.playTone(300, 0.1, t+0.15); }
+}
+
+const game = document.getElementById("game");
+const teacher = document.getElementById("teacher");
+const player = document.getElementById("player");
+const helper = document.getElementById("helper");
+const scoreEl = document.getElementById("score");
+const timeEl = document.getElementById("time");
+const bossHpEl = document.getElementById("bossHp");
+const bossHpTextEl = document.getElementById("bossHpText");
+const bossNameEl = document.getElementById("bossName");
+const bossSpeech = document.getElementById("bossSpeech");
+const warningOverlay = document.getElementById("warning-overlay");
+
+const screenStart = document.getElementById("screen-start");
+const screenGameOver = document.getElementById("screen-gameover");
+const screenVictory = document.getElementById("screen-victory");
+const sfx = new SoundEffects();
+
+let gameState = 'start';
+let score = 0, timeLeft = 60, bossHp = 100, combo = 0, maxCombo = 0;
+let totalPrintsSpawned = 0, totalPrintsCaught = 0;
+let totalAttacksSpawned = 0, totalAttacksHit = 0;
+let currentPhase = 1;
+
+let playerX = 160, playerVx = 0;
+const PLAYER_MAX_SPEED = 9;
+let teacherX = 160, teacherDir = 2.5;
+
+let lastItemSpawn = 0, lastAttackSpawn = 0, lastHelperSpawn = 0, lastTimeUpdate = 0, lastFrameTime = 0;
+let buffs = { magnet: 0, speed: 0 };
+let activeItems = [], activeAttacks = [], activeParticles = [], activePopups = [];
+let helperItem = null;
+let highscore = localStorage.getItem("mouse_game_highscore_v2") || 0;
+
+const keys = { ArrowLeft: false, ArrowRight: false, a: false, d: false, A: false, D: false };
+document.getElementById("highscore-hud").textContent = highscore;
+
+window.addEventListener("keydown", e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = true; });
+window.addEventListener("keyup", e => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+const btnLeft = document.getElementById("left");
+const btnRight = document.getElementById("right");
+let isTouchLeft = false, isTouchRight = false;
+btnLeft.addEventListener("mousedown", () => isTouchLeft = true); btnLeft.addEventListener("mouseup", () => isTouchLeft = false);
+btnLeft.addEventListener("touchstart", (e) => { e.preventDefault(); isTouchLeft = true; }); btnLeft.addEventListener("touchend", () => isTouchLeft = false);
+btnRight.addEventListener("mousedown", () => isTouchRight = true); btnRight.addEventListener("mouseup", () => isTouchRight = false);
+btnRight.addEventListener("touchstart", (e) => { e.preventDefault(); isTouchRight = true; }); btnRight.addEventListener("touchend", () => isTouchRight = false);
+
+document.getElementById("btn-start").addEventListener("click", startGame);
+document.getElementById("btn-retry").addEventListener("click", startGame);
+document.getElementById("btn-play-again").addEventListener("click", startGame);
+
+function showSpeech(text) {
+    bossSpeech.textContent = text;
+    bossSpeech.style.opacity = 1;
+    setTimeout(() => { bossSpeech.style.opacity = 0; }, 2000);
+}
+
+function startGame() {
+    screenStart.classList.add("hidden"); screenGameOver.classList.add("hidden"); screenVictory.classList.add("hidden");
+    warningOverlay.classList.remove("active");
+    game.className = ""; document.body.className = ""; bossHpEl.className = "";
+    teacher.classList.remove("aura-final");
+    
+    activeItems.forEach(i => i.el.remove()); activeAttacks.forEach(a => a.el.remove());
+    activeItems = []; activeAttacks = [];
+    if(helperItem) { helperItem.el.remove(); helperItem = null; }
+
+    score = 0; timeLeft = 60; bossHp = 100; combo = 0; maxCombo = 0;
+    totalPrintsSpawned = 0; totalPrintsCaught = 0; totalAttacksSpawned = 0; totalAttacksHit = 0;
+    currentPhase = 1; bossNameEl.textContent = "UNKNOWN SPIRIT先生 (通常モード)";
+    
+    scoreEl.textContent = score; timeEl.textContent = timeLeft;
+    bossHpEl.style.width = "100%"; bossHpTextEl.textContent = "100%";
+    document.getElementById("combo-badge").classList.remove("active");
+    
+    playerX = 160; playerVx = 0; player.style.left = playerX + "px"; player.className = "";
+    teacherX = 160; teacherDir = 2.5; teacher.style.left = teacherX + "px";
+    buffs.magnet = 0; buffs.speed = 0; document.getElementById("buff-status").innerHTML = "";
+
+    const now = performance.now();
+    lastItemSpawn = now; lastAttackSpawn = now + 2000; lastHelperSpawn = now + 5000;
+    lastTimeUpdate = now; lastFrameTime = now;
+    
+    gameState = 'playing';
+    sfx.playStart();
+    requestAnimationFrame(gameTick);
+}
+
+function updatePhaseLogic() {
+    let oldPhase = currentPhase;
+    if (bossHp > 70) {
+        currentPhase = 1; bossNameEl.textContent = "UNKNOWN SPIRIT先生 (通常モード)";
+    } else if (bossHp > 30) {
+        currentPhase = 2; bossNameEl.textContent = "UNKNOWN SPIRIT先生 (😠怒りモード)";
+        document.body.className = "bg-phase2";
+    } else if (bossHp > 5) {
+        currentPhase = 3; bossNameEl.textContent = "UNKNOWN SPIRIT先生 (👹激怒モード)";
+        document.body.className = "bg-phase3";
+        bossHpEl.className = "hp-blink";
+    } else if (bossHp > 0) {
+        currentPhase = 4; bossNameEl.textContent = "UNKNOWN SPIRIT先生 (🔥超怒りモード)";
+        document.body.className = "bg-phase4";
+        game.classList.add("border-final");
+        teacher.classList.add("aura-final");
+        bossHpEl.style.background = "#a855f7";
+    }
+
+    if (currentPhase !== oldPhase) {
+        sfx.playPhase();
+        if (currentPhase === 2) showSpeech("ちゃんと授業を受けなさい！！");
+        if (currentPhase === 3) { showSpeech("宿題は終わったのか！！"); game.classList.add("shake"); setTimeout(()=>game.classList.remove("shake"), 500); }
+        if (currentPhase === 4) {
+            showSpeech("まだ終わりじゃない！！");
+            warningOverlay.classList.add("active");
+            setTimeout(() => { warningOverlay.classList.remove("active"); }, 2000);
+        }
+    }
+}
+
+function spawnItem() {
+    const el = document.createElement("div"); el.className = "item";
+    const printRatio = currentPhase === 4 ? 0.85 : 0.75;
+    const isPrint = Math.random() < printRatio;
+    el.textContent = isPrint ? "📄" : "🍮";
+    el.classList.add(isPrint ? "print" : "pudding");
+    const x = teacherX + 22, y = 95;
+    el.style.left = x + "px"; el.style.top = y + "px"; game.appendChild(el);
+    activeItems.push({ el, x, y, vy: 200 + Math.random()*80, type: isPrint ? "print" : "pudding" });
+    if(isPrint) totalPrintsSpawned++;
+}
+
+function spawnAttack() {
+    if (currentPhase === 1) return;
+    
+    const count = currentPhase === 4 ? 2 : 1;
+    for(let i=0; i<count; i++) {
+        setTimeout(() => {
+            if (gameState !== 'playing') return;
+            const el = document.createElement("div"); el.className = "item attack"; el.textContent = "🌀";
+            const x = teacherX + 22 + (i * 20 - 10), y = 95;
+            el.style.left = x + "px"; el.style.top = y + "px"; game.appendChild(el);
+            activeAttacks.push({ el, x, y, vy: currentPhase === 4 ? 360 : 280 });
+            totalAttacksSpawned++;
+        }, i * 300);
+    }
+}
+
+function spawnHelper() {
+    const el = document.createElement("div"); el.className = "item";
+    const types = ["magnet", "speed", "time"];
+    const type = types[Math.floor(Math.random()*types.length)];
+    el.textContent = type === "magnet" ? "🧲" : type === "speed" ? "⚡" : "🌟";
+    const x = 345, y = 435; el.style.left = x + "px"; el.style.top = y + "px"; game.appendChild(el);
+    helperItem = { el, x, y, vy: 140, type };
+    helper.classList.add("bounce"); setTimeout(()=>helper.classList.remove("bounce"), 500);
+}
+
+function handleItemCatch(item) {
+    if (item.type === "print") {
+        combo++; if(combo > maxCombo) maxCombo = combo;
+        totalPrintsCaught++;
+        const mult = Math.min(3, Math.floor(combo / 5) + 1);
+        const dmg = 1 * mult;
+        score += dmg; bossHp = Math.max(0, bossHp - dmg);
+        scoreEl.textContent = score;
+        bossHpEl.style.width = bossHp + "%"; bossHpTextEl.textContent = bossHp + "%";
+        sfx.playCatchPrint();
+        createPopup(playerX + 20, 390, `+${dmg}`, "#38bdf8");
+        
+        const badge = document.getElementById("combo-badge");
+        if(combo >= 3) { badge.textContent = `${combo} COMBO!`; badge.classList.add("active"); }
+        updatePhaseLogic();
+        if(bossHp <= 0) endGame(true);
+    } else {
+        combo = 0; document.getElementById("combo-badge").classList.remove("active");
+        score = Math.max(0, score - 3); scoreEl.textContent = score;
+        sfx.playCatchPudding();
+        createPopup(playerX + 20, 390, "-3 プリン!", "#eab308");
+    }
+}
+
+function handleAttackHit(atk) {
+    combo = 0; document.getElementById("combo-badge").classList.remove("active");
+    totalAttacksHit++;
+    score = Math.max(0, score - 5); scoreEl.textContent = score;
+    sfx.playHurt();
+    createPopup(playerX + 20, 390, "痛っ! -5", "#f43f5e");
+    
+    game.classList.add("shake"); setTimeout(()=>game.classList.remove("shake"), 300);
+    player.classList.add("hurt"); setTimeout(()=>player.classList.remove("hurt"), 400);
+}
+
+function gameTick(now) {
+    if (gameState !== 'playing') return;
+    const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
+    lastFrameTime = now;
+
+    let targetSpeed = 0;
+    if (keys.ArrowLeft || keys.a || keys.A || isTouchLeft) targetSpeed = -1;
+    if (keys.ArrowRight || keys.d || keys.D || isTouchRight) targetSpeed = 1;
+    const speedMult = buffs.speed > 0 ? 1.6 : 1.0;
+    if (targetSpeed !== 0) playerVx = Math.max(-PLAYER_MAX_SPEED*speedMult, Math.min(PLAYER_MAX_SPEED*speedMult, playerVx + targetSpeed*1.0));
+    else playerVx *= 0.83;
+    playerX = Math.max(0, Math.min(340, playerX + playerVx));
+    player.style.left = playerX + "px";
+
+    let bSpeed = 2.5;
+    if(currentPhase === 2) bSpeed = 3.5;
+    if(currentPhase === 3) bSpeed = 4.8;
+    if(currentPhase === 4) bSpeed = 6.0;
+    teacherX += Math.sign(teacherDir) * bSpeed;
+    if(teacherX < 0) { teacherX = 0; teacherDir = bSpeed; }
+    if(teacherX > 335) { teacherX = 335; teacherDir = -bSpeed; }
+    teacher.style.left = teacherX + "px";
+
+    if(currentPhase >= 3 && Math.random() < 0.1) { game.classList.add("shake"); setTimeout(()=>game.classList.remove("shake"), 100); }
+
+    let iInterval = currentPhase === 4 ? 450 : 750;
+    if(now - lastItemSpawn >= iInterval) { spawnItem(); lastItemSpawn = now; }
+    let aInterval = currentPhase === 2 ? 3500 : currentPhase === 3 ? 2500 : 2000;
+    if(currentPhase > 1 && now - lastAttackSpawn >= aInterval) { spawnAttack(); lastAttackSpawn = now; }
+    if(now - lastHelperSpawn >= 12000) { spawnHelper(); lastHelperSpawn = now; }
+
+    for(let i=activeItems.length-1; i>=0; i--) {
+        const item = activeItems[i];
+        if(buffs.magnet > 0 && item.type === "print") {
+            const dx = (playerX+40) - item.x; if(Math.abs(dx) < 180) item.x += Math.sign(dx)*5;
+        }
+        item.y += item.vy * dt; item.el.style.top = item.y + "px"; item.el.style.left = item.x + "px";
+        if(item.y > 430 && item.y < 480 && item.x > playerX - 10 && item.x < playerX + 70) {
+            handleItemCatch(item); item.el.remove(); activeItems.splice(i,1); continue;
+        }
+        if(item.y > 530) { item.el.remove(); activeItems.splice(i,1); }
+    }
+
+    let hSpeed = currentPhase === 3 ? 1.2 : currentPhase === 4 ? 2.2 : 0;
+    for(let i=activeAttacks.length-1; i>=0; i--) {
+        const atk = activeAttacks[i];
+        if(hSpeed > 0) { const dx = (playerX+40) - atk.x; atk.x += Math.sign(dx)*hSpeed; }
+        atk.y += atk.vy * dt; atk.el.style.top = atk.y + "px"; atk.el.style.left = atk.x + "px";
+        if(atk.y > 430 && atk.y < 480 && atk.x > playerX - 10 && atk.x < playerX + 70) {
+            handleAttackHit(atk); atk.el.remove(); activeAttacks.splice(i,1); continue;
+        }
+        if(atk.y > 530) { atk.el.remove(); activeAttacks.splice(i,1); }
+    }
+
+    if(helperItem) {
+        helperItem.y += helperItem.vy * dt; helperItem.el.style.top = helperItem.y + "px";
+        if(helperItem.y > 430 && helperItem.y < 480 && helperItem.x > playerX - 10 && helperItem.x < playerX + 70) {
+            if(helperItem.type === "magnet") buffs.magnet = 6;
+            if(helperItem.type === "speed") buffs.speed = 6;
+            if(helperItem.type === "time") { timeLeft = Math.min(99, timeLeft+5); timeEl.textContent = timeLeft; }
+            createPopup(playerX+20, 390, "応援!", "#facc15"); sfx.playStart();
+            helperItem.el.remove(); helperItem = null;
+        } else if(helperItem.y > 530) { helperItem.el.remove(); helperItem = null; }
+    }
+
+    if(buffs.magnet > 0) buffs.magnet = Math.max(0, buffs.magnet - dt);
+    if(buffs.speed > 0) buffs.speed = Math.max(0, buffs.speed - dt);
+    const bStatus = document.getElementById("buff-status"); bStatus.innerHTML = "";
+    if(buffs.magnet > 0) bStatus.innerHTML += `<div class="buff-badge">🧲 磁石 ${buffs.magnet.toFixed(1)}s</div>`;
+    if(buffs.speed > 0) bStatus.innerHTML += `<div class="buff-badge" style="border-color:#eab308">⚡ 加速 ${buffs.speed.toFixed(1)}s</div>`;
+
+    if(now - lastTimeUpdate >= 1000) {
+        timeLeft--; timeEl.textContent = timeLeft; lastTimeUpdate = now;
+        if(timeLeft <= 0) endGame(false);
+    }
+    requestAnimationFrame(gameTick);
+}
+
+function endGame(victory) {
+    gameState = 'end';
+    if(score > highscore) { highscore = score; localStorage.setItem("mouse_game_highscore_v2", highscore); }
+    document.getElementById("highscore-hud").textContent = highscore;
+
+    if (victory) {
+        showSpeech("今日はここまで。プリン食べよ...");
+        document.getElementById("end-score-v").textContent = score;
+        document.getElementById("end-combo").textContent = maxCombo;
+        
+        const collectRate = totalPrintsSpawned > 0 ? Math.round((totalPrintsCaught / totalPrintsSpawned) * 100) : 0;
+        const evadeRate = totalAttacksSpawned > 0 ? Math.round(((totalAttacksSpawned - totalAttacksHit) / totalAttacksSpawned) * 100) : 100;
+        document.getElementById("end-collect").textContent = collectRate;
+        document.getElementById("end-evade").textContent = evadeRate;
+
+        const rankEl = document.getElementById("rank-display");
+        if(score >= 50 && evadeRate >= 90) rankEl.innerHTML = "🏆 Sランク 授業マスター 🏆";
+        else if(score >= 35) rankEl.innerHTML = "⭐ Aランク 優等生 ⭐";
+        else rankEl.innerHTML = " Bランク 一般生徒 ";
+
+        if(totalAttacksHit === 0 && totalAttacksSpawned > 0) { document.getElementById("secret-msg").style.display = "block"; }
+        else { document.getElementById("secret-msg").style.display = "none"; }
+
+        setTimeout(() => { screenVictory.classList.remove("hidden"); }, 1000);
+    } else {
+        document.getElementById("end-score-g").textContent = score;
+        document.getElementById("end-boss-hp").textContent = bossHp;
+        document.getElementById("highscore").textContent = highscore;
+        screenGameOver.classList.remove("hidden");
+    }
+}
+
+function createPopup(x, y, text, color) {
+    const el = document.createElement("div"); el.className = "popup-text";
+    el.textContent = text; el.style.color = color; el.style.left = x + "px"; el.style.top = y + "px";
+    game.appendChild(el); setTimeout(() => el.remove(), 800);
+}
+</script>
+</body>
+</html>
